@@ -4,7 +4,7 @@
 const canvas = document.querySelector('#myCanvas')
 const ctx = canvas.getContext('2d')
 
-const fps = 60
+let score = 0
 
 // ball config
 let x = canvas.width / 2
@@ -16,6 +16,7 @@ const ballRadius = 10
 // paddle config
 const paddleHeight = 10
 const paddleWidth = 75
+const paddleHalfWidth = paddleWidth / 2
 const paddleOriginX = (canvas.width - paddleWidth) / 2
 const paddleOriginY = canvas.height - paddleHeight - 10
 let paddleX = paddleOriginX
@@ -44,7 +45,6 @@ for (let i = 0; i < brickColumnCount; i++) {
     bricks[i].push({ x: 0, y: 0, hidden: false })
   }
 }
-console.log(bricks)
 
 // controller config
 let rightPressed = false
@@ -57,6 +57,13 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowRight') { rightPressed = false }
   if (e.key === 'ArrowLeft') { leftPressed = false }
+})
+
+document.addEventListener('mousemove', (e) => {
+  const relativeX = e.clientX - canvas.offsetLeft
+  if (relativeX > 0 + paddleHalfWidth && relativeX < canvas.width - paddleHalfWidth) {
+    paddleX = relativeX - paddleHalfWidth
+  }
 })
 
 // frame loop
@@ -84,6 +91,7 @@ function animationLoop() {
 
   // 球碰到磚塊
   collisionDetection()
+  drawScore()
 
   // 球碰到左右牆壁
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) { dx = -dx }
@@ -155,7 +163,19 @@ function collisionDetection() {
       if (isBallInX && isBallInY) {
         dy = -dy
         brick.hidden = true
+        score++
+
+        if (score === brickRowCount * brickColumnCount) {
+          alert('You Win. Congratulations!')
+          document.location.reload()
+        }
       }
     }
   }
+}
+
+function drawScore() {
+  ctx.font = '16px Arial'
+  ctx.fillStyle = '#0095DD'
+  ctx.fillText(`Score: ${score}`, 8, 20)
 }
