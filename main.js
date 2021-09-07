@@ -20,6 +20,32 @@ const paddleOriginX = (canvas.width - paddleWidth) / 2
 const paddleOriginY = canvas.height - paddleHeight - 10
 let paddleX = paddleOriginX
 
+// brick config
+const brickRowCount = 3
+const brickColumnCount = 5
+const brickWidth = 75
+const brickHeight = 20
+const brickPadding = 10
+const brickOffsetTop = 30
+const brickOffsetLeft = 30
+
+/**
+ * @typedef {object} IBrick
+ * @property {number} x
+ * @property {number} y
+ * @property {boolean} hidden
+ */
+
+/** @type {IBrick[][]} */
+const bricks = []
+for (let i = 0; i < brickColumnCount; i++) {
+  bricks[i] = []
+  for (let j = 0; j < brickRowCount; j++) {
+    bricks[i].push({ x: 0, y: 0, hidden: false })
+  }
+}
+console.log(bricks)
+
 // controller config
 let rightPressed = false
 let leftPressed = false
@@ -40,6 +66,9 @@ function animationLoop() {
   // 清空上一個 frame
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+  // 磚塊
+  drawBricks(brickColumnCount, brickRowCount, brickPadding, brickWidth, brickHeight, brickOffsetLeft, brickOffsetTop)
+
   // 球板
   drawPaddle(paddleX, paddleOriginY, paddleWidth, paddleHeight)
 
@@ -53,11 +82,14 @@ function animationLoop() {
   // 球
   drawBall(x, y, ballRadius)
 
-  // 球反彈判定
+  // 球碰到磚塊
+  collisionDetection()
+
+  // 球碰到左右牆壁
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) { dx = -dx }
 
   const ballBottomY = y + dy + ballRadius
-  if (y + dy - ballRadius < 0) {
+  if (y + dy - ballRadius < 0) { // 球碰到頂部
     dy = -dy
   } else if (paddleOriginY < ballBottomY && ballBottomY < paddleOriginY + paddleHeight) { // 碰到球板
     if (x > paddleX && x < paddleX + paddleWidth) { dy = -dy }
@@ -90,4 +122,40 @@ function drawPaddle(posX, posY, width, height) {
   ctx.fillStyle = '#0095DD'
   ctx.fill()
   ctx.closePath()
+}
+
+function drawBricks(column, row, padding, width, height, offsetLeft, offsetTop) {
+  for (let i = 0; i < column; i++) {
+    for (let j = 0; j < row; j++) {
+      const brick = bricks[i][j]
+      if (brick.hidden) continue
+
+      const brickX = i * (width + padding) + offsetLeft
+      const brickY = j * (height + padding) + offsetTop
+      brick.x = brickX
+      brick.y = brickY
+
+      ctx.beginPath()
+      ctx.rect(brickX, brickY, width, height)
+      ctx.fillStyle = '#0095DD'
+      ctx.fill()
+      ctx.closePath()
+    }
+  }
+}
+
+function collisionDetection() {
+  for (let i = 0; i < brickColumnCount; i++) {
+    for (let j = 0; j < brickRowCount; j++) {
+      const brick = bricks[i][j]
+      if (brick.hidden) continue
+
+      const isBallInX = x > brick.x && x < brick.x + brickWidth
+      const isBallInY = y > brick.y && y < brick.y + brickHeight
+      if (isBallInX && isBallInY) {
+        dy = -dy
+        brick.hidden = true
+      }
+    }
+  }
 }
