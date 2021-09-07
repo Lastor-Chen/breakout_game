@@ -1,10 +1,14 @@
 // @ts-check
 
+// tutorials from MDN:
+// https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript
+
 /** @type {HTMLCanvasElement} */
 const canvas = document.querySelector('#myCanvas')
 const ctx = canvas.getContext('2d')
 
 let score = 0
+let lives = 3
 
 // ball config
 let x = canvas.width / 2
@@ -92,6 +96,7 @@ function animationLoop() {
   // 球碰到磚塊
   collisionDetection()
   drawScore()
+  drawLives()
 
   // 球碰到左右牆壁
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) { dx = -dx }
@@ -102,11 +107,16 @@ function animationLoop() {
   } else if (paddleOriginY < ballBottomY && ballBottomY < paddleOriginY + paddleHeight) { // 碰到球板
     if (x > paddleX && x < paddleX + paddleWidth) { dy = -dy }
   } else if (ballBottomY > canvas.height) { // 碰到底部
-    const isRestart = confirm('GAME OVER.\nRestart the game?')
-    if (isRestart) {
-      return document.location.reload()
+    if (lives) { // 扣一命, reset
+      lives--
+      x = canvas.width / 2
+      y = canvas.height - 50
+      dx = 2
+      dy = -2
+      paddleX = (canvas.width - paddleWidth) / 2
     } else {
-      return void 0
+      alert('GAME OVER.\nRestart the game?')
+      return document.location.reload()
     }
   }
 
@@ -178,4 +188,10 @@ function drawScore() {
   ctx.font = '16px Arial'
   ctx.fillStyle = '#0095DD'
   ctx.fillText(`Score: ${score}`, 8, 20)
+}
+
+function drawLives() {
+  ctx.font = '16px Arial'
+  ctx.fillStyle = '#0095DD'
+  ctx.fillText(`Lives: ${lives}`, canvas.width - 65, 20)
 }
