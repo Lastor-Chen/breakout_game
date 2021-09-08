@@ -13,6 +13,7 @@ class GameApp {
   isGameOver = false
   isWin = false
   score = 0
+  isHitting = false
 
   /** @param {HTMLCanvasElement} canvas */
   constructor(canvas) {
@@ -111,10 +112,14 @@ class GameApp {
   /** AABB collision detection */
   collideBallWithPaddle() {
     const { ball, paddle } = this
-    const isXin = ball.right > paddle.left && paddle.right > ball.left
-    const isYin = ball.bottom > paddle.top && paddle.bottom > ball.top
+    const isXin = ball.right >= paddle.left && paddle.right >= ball.left
+    const isYin = ball.bottom >= paddle.top && paddle.bottom >= ball.top
     if (isXin && isYin) {
+      if (this.isHitting) return void 0
+      this.isHitting = true
       this.dy = -this.dy
+    } else {
+      this.isHitting = false
     }
   }
 
@@ -126,8 +131,8 @@ class GameApp {
       column: totalCol,
     } = this.brickConfig
 
-    this.brickGroup.forEach((rowBricks, row) => {
-      rowBricks.forEach((brick, col) => {
+    this.brickGroup.forEach((rowBricks) => {
+      rowBricks.forEach((brick) => {
         if (brick.hidden) return void 0
 
         const isBallInX = ball.x > brick.x && ball.x < brick.x + brick.width
