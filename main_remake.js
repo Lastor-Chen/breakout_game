@@ -1,39 +1,37 @@
 // @ts-check
 
 class GameApp {
-  /**
-   * @typedef {object} IGameAppConfig
-   * @property {HTMLCanvasElement} canvas
-   * @property {number} speedX
-   * @property {number} speedY
-   */
-
-  /** @param {IGameAppConfig} config */
-  constructor(config) {
-    this.canvas = config.canvas
-    this.ctx = config.canvas.getContext('2d')
-    this.dx = config.speedX
-    this.dy = config.speedY
-    this.ball = new Circle({
-      x: this.canvas.width / 2,
-      y: this.canvas.height - 50,
-      radius: 8,
-      color: '#0095DD',
-    })
-    this.paddle = new Rectangle({
-      x: (this.canvas.width - 75) / 2,
-      y: this.canvas.height - 10 - 10,
-      width: 75,
-      height: 10,
-      color: '#0095DD',
-    })
-    this.paddleSpeed = 7
-  }
-
+  /** @type {Circle} */
+  ball = null
+  /** @type {Rectangle} */
+  paddle = null
+  /** @type {Rectangle[][]} */
+  brickGroup = []
   isRightPressed = false
   isLeftPressed = false
   requestFrameId = 0
   isGameOver = false
+  isWin = false
+  score = 0
+
+  /** @param {HTMLCanvasElement} canvas */
+  constructor(canvas) {
+    this.canvas = canvas
+    this.ctx = canvas.getContext('2d')
+    this.dx = 2
+    this.dy = -2
+    this.paddleSpeed = 7
+    this.brickConfig = {
+      width: 75,
+      height: 20,
+      row: 3,
+      column: 5,
+      padding: 10,
+      offsetTop: 30,
+      offsetLeft: 30,
+    }
+    this.createGameItems()
+  }
 
   start() {
     // listen keyboard controller
@@ -73,8 +71,13 @@ class GameApp {
 
     this.paddle.updateBound().draw(this.ctx)
     this.ball.updateBound().draw(this.ctx)
+
     this.collideBallWithWall()
     this.collideBallWithPaddle()
+    this.collideBallWithBricks()
+
+    this.drawBricks()
+    this.drawScore()
 
     if (this.isLeftPressed) {
       const limitLeft = 0
@@ -105,7 +108,7 @@ class GameApp {
     }
   }
 
-  /** AABB collision detection between ball's box with paddle */
+  /** AABB collision detection */
   collideBallWithPaddle() {
     const { ball, paddle } = this
     const isXin = ball.right > paddle.left && paddle.right > ball.left
@@ -115,10 +118,103 @@ class GameApp {
     }
   }
 
+  /** AABB collision detection */
+  collideBallWithBricks() {
+    const ball = this.ball
+    const {
+      row: totalRow,
+      column: totalCol,
+    } = this.brickConfig
+
+    this.brickGroup.forEach((rowBricks, row) => {
+      rowBricks.forEach((brick, col) => {
+        if (brick.hidden) return void 0
+
+        const isBallInX = ball.x > brick.x && ball.x < brick.x + brick.width
+        const isBallInY = ball.y > brick.y && ball.y < brick.y + brick.height
+        if (isBallInX && isBallInY) {
+          this.dy = -this.dy
+          brick.hidden = true
+          this.score += 1
+
+          if (this.score === totalRow * totalCol) {
+            this.isWin = true
+            this.isGameOver = true
+          }
+        }
+      })
+    })
+  }
+
   gameOver() {
     window.cancelAnimationFrame(this.requestFrameId)
     this.requestFrameId = null
-    alert('Game Over')
+    if (this.isWin) {
+      alert('You Win. Congratulations!')
+    } else {
+      alert('Game Over')
+    }
+  }
+
+  createGameItems() {
+    this.ball = new Circle({
+      x: this.canvas.width / 2,
+      y: this.canvas.height - 50,
+      radius: 8,
+      color: '#0095DD',
+    })
+
+    this.paddle = new Rectangle({
+      x: (this.canvas.width - 75) / 2,
+      y: this.canvas.height - 10 - 10,
+      width: 75,
+      height: 10,
+      color: '#0095DD',
+    })
+
+    const {
+      row: brickRow,
+      column: brickColumn,
+      width: brickWidth,
+      height: brickHeight,
+      padding: brickPadding,
+      offsetTop: brickOffsetTop,
+      offsetLeft: brickOffsetLeft,
+    } = this.brickConfig
+
+    for (let row = 0; row < brickRow; row++) {
+      this.brickGroup[row] = []
+      for (let col = 0; col < brickColumn; col++) {
+        const brick = new Rectangle({
+          x: row * (brickHeight + brickPadding) + brickOffsetTop,
+          y: col * (brickWidth + brickPadding) + brickOffsetLeft,
+          width: 75,
+          height: 20,
+          color: '#0095DD',
+          hidden: false,
+        })
+        this.brickGroup[row].push(brick)
+      }
+    }
+  }
+
+  drawBricks() {
+    const { padding, offsetTop, offsetLeft } = this.brickConfig
+
+    this.brickGroup.forEach((rowBricks, row) => {
+      rowBricks.forEach((brick, col) => {
+        if (brick.hidden) return void 0
+        brick.x = col * (brick.width + padding) + offsetLeft
+        brick.y = row * (brick.height + padding) + offsetTop
+        brick.updateBound().draw(this.ctx)
+      })
+    })
+  }
+
+  drawScore() {
+    this.ctx.font = '16px Arial'
+    this.ctx.fillStyle = '#0095DD'
+    this.ctx.fillText(`Score: ${this.score}`, 8, 20)
   }
 }
 
@@ -167,6 +263,7 @@ class Rectangle {
    * @property {number} width
    * @property {number} height
    * @property {string} color
+   * @property {boolean=} hidden
    */
 
   /** @param {IRectangleConfig} config */
@@ -176,6 +273,7 @@ class Rectangle {
     this.width = config.width
     this.height = config.height
     this.color = config.color
+    this.hidden = config.hidden || false
     this.updateBound()
   }
 
@@ -198,11 +296,9 @@ class Rectangle {
   }
 }
 
-const app = new GameApp({
-  canvas: document.querySelector('#myCanvas'),
-  speedX: 2,
-  speedY: -2,
-})
+/** @type {HTMLCanvasElement} */
+const canvas = document.querySelector('#myCanvas')
+const app = new GameApp(canvas)
 app.start()
 
 console.log('main2 running')
