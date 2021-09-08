@@ -115,7 +115,7 @@ function animationLoop() {
       dy = -2
       paddleX = (canvas.width - paddleWidth) / 2
     } else {
-      alert('GAME OVER.\nRestart the game?')
+      alert('GAME OVER')
       return document.location.reload()
     }
   }

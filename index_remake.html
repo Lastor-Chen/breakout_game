@@ -10,15 +10,26 @@
       padding: 0;
       margin: 0;
     }
+    .container {
+      width: 70%;
+      margin: 0 auto;
+      text-align: center;
+    }
     canvas {
       background: #eee;
       display: block;
       margin: 0 auto;
     }
+    button {
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
-  <canvas id="myCanvas" width="480" height="320"></canvas>
+  <div class="container">
+    <canvas id="myCanvas" width="480" height="320"></canvas>
+    <button id="restart">Restart</button>
+  </div>
   <script src="main_remake.js"></script>
 </body>
 </html>

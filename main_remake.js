@@ -32,6 +32,8 @@ class GameApp {
 
   isRightPressed = false
   isLeftPressed = false
+  requestFrameId = 0
+  isGameOver = false
 
   start() {
     // listen keyboard controller
@@ -52,10 +54,21 @@ class GameApp {
       }
     })
 
-    window.requestAnimationFrame(() => this.drawFrame())
+    // listen buttons
+    const restartBtn = document.querySelector('#restart')
+    restartBtn.addEventListener('click', () => {
+      document.location.reload()
+    })
+
+    this.runAnimationLoop()
+  }
+
+  runAnimationLoop() {
+    this.requestFrameId = window.requestAnimationFrame(() => this.drawFrame())
   }
 
   drawFrame() {
+    if (this.isGameOver) return this.gameOver()
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
     this.paddle.updateBound().draw(this.ctx)
@@ -74,17 +87,21 @@ class GameApp {
     this.ball.x += this.dx
     this.ball.y += this.dy
 
-    // loop from frame to frame
-    window.requestAnimationFrame(() => this.drawFrame())
+    this.runAnimationLoop()
   }
 
   collideBallWithWall() {
-    if (this.ball.left < 0 || this.ball.right > this.canvas.width) {
+    const isHitWallLeft = this.ball.left < 0
+    const isHitWallRight = this.ball.right > this.canvas.width
+    const isHitWallTop = this.ball.top < 0
+    const isHitWallBottom = this.ball.bottom > this.canvas.height
+
+    if (isHitWallLeft || isHitWallRight) {
       this.dx = -this.dx
-    } else if (this.ball.top < 0) {
+    } else if (isHitWallTop) {
       this.dy = -this.dy
-    } else if (this.ball.bottom > this.canvas.height) {
-      this.dy = -this.dy
+    } else if (isHitWallBottom) {
+      this.isGameOver = true
     }
   }
 
@@ -96,6 +113,12 @@ class GameApp {
     if (isXin && isYin) {
       this.dy = -this.dy
     }
+  }
+
+  gameOver() {
+    window.cancelAnimationFrame(this.requestFrameId)
+    this.requestFrameId = null
+    alert('Game Over')
   }
 }
 
