@@ -7,21 +7,36 @@ class GameApp {
   paddle = null
   /** @type {Rectangle[][]} */
   brickGroup = []
+  requestFrameId = 0
+  score = 0
   isRightPressed = false
   isLeftPressed = false
-  requestFrameId = 0
   isGameOver = false
   isWin = false
-  score = 0
   isHitting = false
 
   /** @param {HTMLCanvasElement} canvas */
   constructor(canvas) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
-    this.dx = 2
-    this.dy = -2
     this.paddleSpeed = 7
+    this.ballConfig = {
+      x: this.canvas.width / 2,
+      y: this.canvas.height - 50,
+      radius: 8,
+      dx: 2,
+      dy: -2,
+      color: '#0095DD',
+    }
+    this.dx = this.ballConfig.dx
+    this.dy = this.ballConfig.dy
+    this.paddleConfig = {
+      width: 75,
+      height: 10,
+      x: (this.canvas.width - 75) / 2,
+      y: (this.canvas.height - 10) - 10,
+      color: '#0095DD',
+    }
     this.brickConfig = {
       width: 75,
       height: 20,
@@ -30,6 +45,7 @@ class GameApp {
       padding: 10,
       offsetTop: 30,
       offsetLeft: 30,
+      color: '#0095DD',
     }
     this.createGameItems()
   }
@@ -56,7 +72,28 @@ class GameApp {
     // listen buttons
     const restartBtn = document.querySelector('#restart')
     restartBtn.addEventListener('click', () => {
-      document.location.reload()
+      this.restart()
+    })
+
+    this.runAnimationLoop()
+  }
+
+  restart() {
+    // reset all
+    this.score = 0
+    this.ball.x = this.ballConfig.x
+    this.ball.y = this.ballConfig.y
+    this.dx = this.ballConfig.dx
+    this.dy = this.ballConfig.dy
+    this.paddle.x = this.paddleConfig.x
+    this.paddle.y = this.paddleConfig.y
+    this.isRightPressed = false
+    this.isLeftPressed = false
+    this.isGameOver = false
+    this.isWin = false
+    this.isHitting = false
+    this.brickGroup.forEach((rowBricks) => {
+      rowBricks.forEach((brick) => brick.hidden = false)
     })
 
     this.runAnimationLoop()
@@ -112,8 +149,8 @@ class GameApp {
   /** AABB collision detection */
   collideBallWithPaddle() {
     const { ball, paddle } = this
-    const isXin = ball.right >= paddle.left && paddle.right >= ball.left
-    const isYin = ball.bottom >= paddle.top && paddle.bottom >= ball.top
+    const isXin = ball.right > paddle.left && paddle.right > ball.left
+    const isYin = ball.bottom > paddle.top && paddle.bottom > ball.top
     if (isXin && isYin) {
       if (this.isHitting) return void 0
       this.isHitting = true
@@ -162,21 +199,13 @@ class GameApp {
   }
 
   createGameItems() {
-    this.ball = new Circle({
-      x: this.canvas.width / 2,
-      y: this.canvas.height - 50,
-      radius: 8,
-      color: '#0095DD',
-    })
+    // create ball
+    this.ball = new Circle(this.ballConfig)
 
-    this.paddle = new Rectangle({
-      x: (this.canvas.width - 75) / 2,
-      y: this.canvas.height - 10 - 10,
-      width: 75,
-      height: 10,
-      color: '#0095DD',
-    })
+    // create paddle
+    this.paddle = new Rectangle(this.paddleConfig)
 
+    // create bricks
     const {
       row: brickRow,
       column: brickColumn,
@@ -185,6 +214,7 @@ class GameApp {
       padding: brickPadding,
       offsetTop: brickOffsetTop,
       offsetLeft: brickOffsetLeft,
+      color: brickColor,
     } = this.brickConfig
 
     for (let row = 0; row < brickRow; row++) {
@@ -193,9 +223,9 @@ class GameApp {
         const brick = new Rectangle({
           x: row * (brickHeight + brickPadding) + brickOffsetTop,
           y: col * (brickWidth + brickPadding) + brickOffsetLeft,
-          width: 75,
-          height: 20,
-          color: '#0095DD',
+          width: brickWidth,
+          height: brickHeight,
+          color: brickColor,
           hidden: false,
         })
         this.brickGroup[row].push(brick)
