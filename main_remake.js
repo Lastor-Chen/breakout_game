@@ -14,7 +14,6 @@ class GameApp {
   isGameOver = false
   isWin = false
   isPaddleHitting = false // 球是否正與 paddle 碰撞中, 防抖用
-  isWallHitting = false // 球是否正與 wall 碰撞中, 防抖用
   isEmitBall = false
   /** @type {'ready' | 'playing' | 'ending'} */
   state = 'ready'
@@ -249,26 +248,23 @@ class GameApp {
   }
 
   collideBallWithWall() {
-    const isHitWallLeft = this.ball.left < 0
-    const isHitWallRight = this.ball.right > this.canvas.width
-    const isHitWallTop = this.ball.top < 0
-    const isHitWallBottom = this.ball.bottom > this.canvas.height
+    const isHitWallLeft = this.ball.left <= 0
+    const isHitWallRight = this.ball.right >= this.canvas.width
+    const isHitWallTop = this.ball.top <= 0
+    const isHitWallBottom = this.ball.bottom >= this.canvas.height
 
-    if (isHitWallLeft || isHitWallRight) {
-      if (this.isWallHitting) return void 0
-      this.isWallHitting = true
-
+    // 避免球卡進牆, 碰撞後強制推回
+    if (isHitWallLeft) {
       this.ball.dx = -this.ball.dx
+      this.ball.x = 0 + this.ball.radius
+    } if (isHitWallRight) {
+      this.ball.dx = -this.ball.dx
+      this.ball.x = this.canvas.width - this.ball.radius
     } else if (isHitWallTop) {
-      if (this.isWallHitting) return void 0
-      this.isWallHitting = true
-
       this.ball.dy = -this.ball.dy
+      this.ball.y = 0 + this.ball.radius
     } else if (isHitWallBottom) {
       this.isGameOver = true
-    } else {
-      if (!this.isWallHitting) return void 0
-      this.isWallHitting = false
     }
   }
 

@@ -18,7 +18,9 @@ Side project of HTML5 Game, refer to [MDN tutorials](https://developer.mozilla.o
 
 ## Remake version memo
 - 改用 OOP 概念嘗試重構
-- paddle 與 ball 用 AABB 碰撞偵測, 從左右兩側碰撞時, ball.y 會卡住, 需特別處理
+- ball 從左右兩側碰撞 paddle 時, x 軸會發生連續判定, 導正 ball.y 卡在 paddle 裡, 需用防陡之類概念處理
+- 同上 ball 卡進 wall 四角時, 因兩側都發生判定, ball 會卡牆
+  - 不能用 boolean 開關處理, ball 會飛出世界, 故改用強制回推 ball.x 與 ball.y 的方式處理　
 - 改用 app 內部機制 restart game
 - 加入開始頁面, 結束頁面
 - 加入 Enter key 發射機制與提示文字
