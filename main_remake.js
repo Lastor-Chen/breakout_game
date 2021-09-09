@@ -13,7 +13,8 @@ class GameApp {
   isLeftPressed = false
   isGameOver = false
   isWin = false
-  isHitting = false // 球是否正在碰撞中, 防抖用
+  isPaddleHitting = false // 球是否正與 paddle 碰撞中, 防抖用
+  isWallHitting = false // 球是否正與 wall 碰撞中, 防抖用
   isEmitBall = false
   /** @type {'ready' | 'playing' | 'ending'} */
   state = 'ready'
@@ -254,11 +255,20 @@ class GameApp {
     const isHitWallBottom = this.ball.bottom > this.canvas.height
 
     if (isHitWallLeft || isHitWallRight) {
+      if (this.isWallHitting) return void 0
+      this.isWallHitting = true
+
       this.ball.dx = -this.ball.dx
     } else if (isHitWallTop) {
+      if (this.isWallHitting) return void 0
+      this.isWallHitting = true
+
       this.ball.dy = -this.ball.dy
     } else if (isHitWallBottom) {
       this.isGameOver = true
+    } else {
+      if (!this.isWallHitting) return void 0
+      this.isWallHitting = false
     }
   }
 
@@ -268,8 +278,8 @@ class GameApp {
     const isXin = ball.right > paddle.left && paddle.right > ball.left
     const isYin = ball.bottom > paddle.top && paddle.bottom > ball.top
     if (isXin && isYin) {
-      if (this.isHitting) return void 0
-      this.isHitting = true
+      if (this.isPaddleHitting) return void 0
+      this.isPaddleHitting = true
 
       this.ball.dy = -this.ball.dy
 
@@ -293,7 +303,8 @@ class GameApp {
         this.ball.dx += direction * coefficient || coefficient
       }
     } else {
-      this.isHitting = false
+      if (!this.isPaddleHitting) return void 0
+      this.isPaddleHitting = false
     }
   }
 
@@ -405,7 +416,8 @@ class GameApp {
     this.isLeftPressed = false
     this.isGameOver = false
     this.isWin = false
-    this.isHitting = false
+    this.isPaddleHitting = false
+    this.isWallHitting = false
     this.isEmitBall = false
     this.brickGroup.forEach((rowBricks) => {
       rowBricks.forEach((brick) => (brick.hidden = false))
