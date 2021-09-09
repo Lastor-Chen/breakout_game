@@ -32,10 +32,10 @@ class GameApp {
     }
     this.paddle = new Rectangle(this.paddleConfig)
     this.ballConfig = {
-      x: this.canvas.width / 2 + 8,
+      x: this.canvas.width / 2,
       y: this.paddle.top - 8,
       radius: 8,
-      dx: 2,
+      dx: 0,
       dy: -2,
       color: '#0095DD',
     }
@@ -156,6 +156,7 @@ class GameApp {
       this.drawBricks()
       this.drawScore()
 
+      // handle paddle movement
       const limitLeft = 0
       const limitRight = this.canvas.width - this.paddle.width
       if (this.isLeftPressed && this.paddle.x > limitLeft) {
@@ -170,6 +171,7 @@ class GameApp {
         }
       }
 
+      // handle ball movement
       if (this.isEmitBall) {
         this.ball.x += this.ball.dx
         this.ball.y += this.ball.dy
@@ -268,7 +270,28 @@ class GameApp {
     if (isXin && isYin) {
       if (this.isHitting) return void 0
       this.isHitting = true
+
       this.ball.dy = -this.ball.dy
+
+      // 根據撞擊位置改變 dx, 藉此改變 ball 運動直線斜率
+      // 撞擊位置分3段, 近(x方向減速), 中(不變), 遠(x加速)
+      const near = 0.35
+      const middle = 0.3
+      const far = 0.35
+
+      // 左到右為 1, 右到左為 -1
+      const direction = Math.sign(this.ball.dx)
+      // 撞擊位置的 x 純量值, 會依從左到右 or 從右到左, 算法不同
+      const occurringX = direction >= 0 ? ball.x - paddle.x : paddle.right - ball.x
+      // 算出撞擊位置的純量值, 佔 paddle 的百比率
+      const ratioOfPaddle = occurringX / paddle.width
+      // 加減速量值
+      const coefficient = 1
+      if (ratioOfPaddle < near) {
+        this.ball.dx -= direction * coefficient || coefficient
+      } else if (ratioOfPaddle > 1 - far) {
+        this.ball.dx += direction * coefficient || coefficient
+      }
     } else {
       this.isHitting = false
     }
@@ -356,7 +379,7 @@ class GameApp {
     this.ctx.font = `${fontSize}px Arial`
     this.ctx.fillStyle = 'white'
     this.ctx.fillText(
-      `Press arrow left or right to move`, //
+      `Press arrow [Left] or [Right] to move`, //
       this.canvas.width / 2,
       (this.canvas.height - fontSize / 2) / 2
     )
