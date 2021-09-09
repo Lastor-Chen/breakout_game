@@ -71,22 +71,31 @@ class GameApp {
     this.requestFrameId = window.requestAnimationFrame((ms) => {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
-      // title text
+      // font style
+      const titleSize = 32
+      const fontSize = 16
+      const marginTop = fontSize * 1.5
       this.ctx.textAlign = 'center'
-      this.ctx.font = '32px Arial'
+
+      // title text
+      this.ctx.font = `${titleSize}px Arial`
       this.ctx.fillStyle = '#0095DD'
       this.ctx.fillText(
         'BREAKOUT GAME', //
         this.canvas.width / 2,
-        (this.canvas.height - 16) / 2
+        (this.canvas.height - titleSize / 2) / 2
       )
 
       // blink effect info text
       const duration = 800
       if (ms % (duration * 2) > duration) {
-        this.ctx.font = '16px Arial'
+        this.ctx.font = `${fontSize}px Arial`
         this.ctx.fillStyle = 'white'
-        this.ctx.fillText('Press Enter to start', this.canvas.width / 2, (this.canvas.height - 16) / 2 + 32 * 1.5)
+        this.ctx.fillText(
+          'Press Enter to start', //
+          this.canvas.width / 2,
+          (this.canvas.height - fontSize / 2) / 2 + marginTop * 2
+        )
       }
 
       this.renderReadyPage()
@@ -120,9 +129,9 @@ class GameApp {
 
   renderPlayPage() {
     if (this.state !== 'playing') return void 0
+    if (this.isGameOver) return this.startEndingPage()
 
     this.requestFrameId = window.requestAnimationFrame(() => {
-      if (this.isGameOver) return this.gameOver()
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
       this.paddle.updateBound().draw(this.ctx)
@@ -147,6 +156,70 @@ class GameApp {
       this.ball.y += this.dy
 
       this.renderPlayPage()
+    })
+  }
+
+  startEndingPage() {
+    this.state = 'ending'
+    window.cancelAnimationFrame(this.requestFrameId)
+
+    const self = this
+    document.addEventListener('keypress', function pressHandler(e) {
+      if (e.key === 'Enter') {
+        document.removeEventListener('keypress', pressHandler)
+        self.restart()
+        self.startPlayPage()
+      }
+    })
+
+    this.renderEndingPage()
+  }
+
+  renderEndingPage() {
+    if (this.state !== 'ending') return void 0
+
+    this.requestFrameId = window.requestAnimationFrame((ms) => {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+      // font style
+      const title = this.isWin ? 'YOU WIN' : 'GAME OVER'
+      const titleColor = this.isWin ? 'yellow' : '#0095DD'
+      const titleSize = 32
+      const fontSize = 16
+      const marginTop = fontSize * 1.5
+      this.ctx.textAlign = 'center'
+
+      // title text
+      this.ctx.font = `${titleSize}px Arial`
+      this.ctx.fillStyle = titleColor
+      this.ctx.fillText(
+        title, //
+        this.canvas.width / 2,
+        (this.canvas.height - titleSize / 2) / 2
+      )
+
+      // subtitle text
+      this.ctx.font = `${fontSize}px Arial`
+      this.fillStyle = titleColor
+      this.ctx.fillText(
+        `score: ${this.score}`, //
+        this.canvas.width / 2,
+        (this.canvas.height - titleSize / 2) / 2 + marginTop
+      )
+
+      // blink effect info text
+      const duration = 800
+      if (ms % (duration * 2) > duration) {
+        this.ctx.font = `${fontSize}px Arial`
+        this.ctx.fillStyle = 'white'
+        this.ctx.fillText(
+          'Press Enter to restart', //
+          this.canvas.width / 2,
+          (this.canvas.height - titleSize / 2) / 2 + marginTop * 2
+        )
+      }
+
+      this.renderEndingPage()
     })
   }
 
@@ -202,16 +275,6 @@ class GameApp {
         }
       })
     })
-  }
-
-  gameOver() {
-    window.cancelAnimationFrame(this.requestFrameId)
-    this.requestFrameId = null
-    if (this.isWin) {
-      alert('You Win. Congratulations!')
-    } else {
-      alert('Game Over')
-    }
   }
 
   createGameItems() {
@@ -373,5 +436,3 @@ class Rectangle {
 const canvas = document.querySelector('#myCanvas')
 const app = new GameApp(canvas)
 app.start()
-
-console.log('main2 running')
