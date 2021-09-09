@@ -23,7 +23,7 @@ class GameApp {
   constructor(canvas) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
-    this.paddleSpeed = 5
+    this.paddleSpeed = 8
     this.paddleConfig = {
       width: 75,
       height: 10,
@@ -33,11 +33,11 @@ class GameApp {
     }
     this.paddle = new Rectangle(this.paddleConfig)
     this.ballConfig = {
-      x: this.canvas.width / 2,
+      x: this.canvas.width / 2 + 10,
       y: this.paddle.top - 8,
       radius: 8,
-      dx: 0,
-      dy: -2,
+      dx: 1,
+      dy: -4,
       color: '#0095DD',
     }
     this.ball = new Circle(this.ballConfig)
@@ -296,7 +296,7 @@ class GameApp {
       // 算出撞擊位置的純量值, 佔 paddle 的百比率
       const ratioOfPaddle = occurringX / paddle.width
       // 加減速量值
-      const coefficient = 1
+      const coefficient = 2
       if (ratioOfPaddle < near) {
         this.ball.dx -= direction * coefficient || coefficient
       } else if (ratioOfPaddle > 1 - far) {
