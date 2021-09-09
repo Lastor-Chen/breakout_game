@@ -14,6 +14,8 @@ class GameApp {
   isGameOver = false
   isWin = false
   isHitting = false
+  /** @type {'ready' | 'playing' | 'ending'} */
+  state = 'ready'
 
   /** @param {HTMLCanvasElement} canvas */
   constructor(canvas) {
@@ -34,7 +36,7 @@ class GameApp {
       width: 75,
       height: 10,
       x: (this.canvas.width - 75) / 2,
-      y: (this.canvas.height - 10) - 10,
+      y: this.canvas.height - 10 - 10,
       color: '#0095DD',
     }
     this.brickConfig = {
@@ -51,6 +53,50 @@ class GameApp {
   }
 
   start() {
+    const self = this
+    document.addEventListener('keypress', function pressHandler(e) {
+      if (e.key === 'Enter') {
+        self.state === 'playing'
+        document.removeEventListener('keypress', pressHandler)
+        self.startPlayPage()
+      }
+    })
+
+    this.renderReadyPage()
+  }
+
+  renderReadyPage() {
+    if (this.state !== 'ready') return void 0
+
+    this.requestFrameId = window.requestAnimationFrame((ms) => {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+      // title text
+      this.ctx.textAlign = 'center'
+      this.ctx.font = '32px Arial'
+      this.ctx.fillStyle = '#0095DD'
+      this.ctx.fillText(
+        'BREAKOUT GAME', //
+        this.canvas.width / 2,
+        (this.canvas.height - 16) / 2
+      )
+
+      // blink effect info text
+      const duration = 800
+      if (ms % (duration * 2) > duration) {
+        this.ctx.font = '16px Arial'
+        this.ctx.fillStyle = 'white'
+        this.ctx.fillText('Press Enter to start', this.canvas.width / 2, (this.canvas.height - 16) / 2 + 32 * 1.5)
+      }
+
+      this.renderReadyPage()
+    })
+  }
+
+  startPlayPage() {
+    this.state = 'playing'
+    window.cancelAnimationFrame(this.requestFrameId)
+
     // listen keyboard controller
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') {
@@ -69,66 +115,39 @@ class GameApp {
       }
     })
 
-    // listen buttons
-    const restartBtn = document.querySelector('#restart')
-    restartBtn.addEventListener('click', () => {
-      this.restart()
+    this.renderPlayPage()
+  }
+
+  renderPlayPage() {
+    if (this.state !== 'playing') return void 0
+
+    this.requestFrameId = window.requestAnimationFrame(() => {
+      if (this.isGameOver) return this.gameOver()
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+      this.paddle.updateBound().draw(this.ctx)
+      this.ball.updateBound().draw(this.ctx)
+
+      this.collideBallWithWall()
+      this.collideBallWithPaddle()
+      this.collideBallWithBricks()
+
+      this.drawBricks()
+      this.drawScore()
+
+      if (this.isLeftPressed) {
+        const limitLeft = 0
+        this.paddle.x = Math.max(limitLeft, this.paddle.x - this.paddleSpeed)
+      } else if (this.isRightPressed) {
+        const limitRight = this.canvas.width - this.paddle.width
+        this.paddle.x = Math.min(limitRight, this.paddle.x + this.paddleSpeed)
+      }
+
+      this.ball.x += this.dx
+      this.ball.y += this.dy
+
+      this.renderPlayPage()
     })
-
-    this.runAnimationLoop()
-  }
-
-  restart() {
-    // reset all
-    this.score = 0
-    this.ball.x = this.ballConfig.x
-    this.ball.y = this.ballConfig.y
-    this.dx = this.ballConfig.dx
-    this.dy = this.ballConfig.dy
-    this.paddle.x = this.paddleConfig.x
-    this.paddle.y = this.paddleConfig.y
-    this.isRightPressed = false
-    this.isLeftPressed = false
-    this.isGameOver = false
-    this.isWin = false
-    this.isHitting = false
-    this.brickGroup.forEach((rowBricks) => {
-      rowBricks.forEach((brick) => brick.hidden = false)
-    })
-
-    this.runAnimationLoop()
-  }
-
-  runAnimationLoop() {
-    this.requestFrameId = window.requestAnimationFrame(() => this.drawFrame())
-  }
-
-  drawFrame() {
-    if (this.isGameOver) return this.gameOver()
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-
-    this.paddle.updateBound().draw(this.ctx)
-    this.ball.updateBound().draw(this.ctx)
-
-    this.collideBallWithWall()
-    this.collideBallWithPaddle()
-    this.collideBallWithBricks()
-
-    this.drawBricks()
-    this.drawScore()
-
-    if (this.isLeftPressed) {
-      const limitLeft = 0
-      this.paddle.x = Math.max(limitLeft, this.paddle.x - this.paddleSpeed)
-    } else if (this.isRightPressed) {
-      const limitRight = this.canvas.width - this.paddle.width
-      this.paddle.x = Math.min(limitRight, this.paddle.x + this.paddleSpeed)
-    }
-
-    this.ball.x += this.dx
-    this.ball.y += this.dy
-
-    this.runAnimationLoop()
   }
 
   collideBallWithWall() {
@@ -163,10 +182,7 @@ class GameApp {
   /** AABB collision detection */
   collideBallWithBricks() {
     const ball = this.ball
-    const {
-      row: totalRow,
-      column: totalCol,
-    } = this.brickConfig
+    const { row: totalRow, column: totalCol } = this.brickConfig
 
     this.brickGroup.forEach((rowBricks) => {
       rowBricks.forEach((brick) => {
@@ -247,9 +263,31 @@ class GameApp {
   }
 
   drawScore() {
+    this.ctx.textAlign = 'left'
     this.ctx.font = '16px Arial'
     this.ctx.fillStyle = '#0095DD'
     this.ctx.fillText(`Score: ${this.score}`, 8, 20)
+  }
+
+  restart() {
+    // reset all
+    this.score = 0
+    this.ball.x = this.ballConfig.x
+    this.ball.y = this.ballConfig.y
+    this.dx = this.ballConfig.dx
+    this.dy = this.ballConfig.dy
+    this.paddle.x = this.paddleConfig.x
+    this.paddle.y = this.paddleConfig.y
+    this.isRightPressed = false
+    this.isLeftPressed = false
+    this.isGameOver = false
+    this.isWin = false
+    this.isHitting = false
+    this.brickGroup.forEach((rowBricks) => {
+      rowBricks.forEach((brick) => (brick.hidden = false))
+    })
+
+    this.renderPlayPage()
   }
 }
 
