@@ -13,7 +13,8 @@ class GameApp {
   isLeftPressed = false
   isGameOver = false
   isWin = false
-  isHitting = false
+  isHitting = false // 球是否正在碰撞中, 防抖用
+  isEmitBall = false
   /** @type {'ready' | 'playing' | 'ending'} */
   state = 'ready'
 
@@ -21,17 +22,7 @@ class GameApp {
   constructor(canvas) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
-    this.paddleSpeed = 7
-    this.ballConfig = {
-      x: this.canvas.width / 2,
-      y: this.canvas.height - 50,
-      radius: 8,
-      dx: 2,
-      dy: -2,
-      color: '#0095DD',
-    }
-    this.dx = this.ballConfig.dx
-    this.dy = this.ballConfig.dy
+    this.paddleSpeed = 5
     this.paddleConfig = {
       width: 75,
       height: 10,
@@ -39,6 +30,18 @@ class GameApp {
       y: this.canvas.height - 10 - 10,
       color: '#0095DD',
     }
+    this.paddle = new Rectangle(this.paddleConfig)
+    this.ballConfig = {
+      x: this.canvas.width / 2 + 8,
+      y: this.paddle.top - 8,
+      radius: 8,
+      dx: 2,
+      dy: -2,
+      color: '#0095DD',
+    }
+    this.ball = new Circle(this.ballConfig)
+    this.dx = this.ballConfig.dx
+    this.dy = this.ballConfig.dy
     this.brickConfig = {
       width: 75,
       height: 20,
@@ -49,15 +52,15 @@ class GameApp {
       offsetLeft: 30,
       color: '#0095DD',
     }
-    this.createGameItems()
+    this.brickGroup = this.createBricks()
   }
 
   start() {
     const self = this
-    document.addEventListener('keypress', function pressHandler(e) {
+    document.addEventListener('keyup', function enterHandler(e) {
       if (e.key === 'Enter') {
+        document.removeEventListener('keyup', enterHandler)
         self.state === 'playing'
-        document.removeEventListener('keypress', pressHandler)
         self.startPlayPage()
       }
     })
@@ -124,6 +127,15 @@ class GameApp {
       }
     })
 
+    // listen ball emitter "once"
+    const self = this
+    document.addEventListener('keyup', function emitBall(e) {
+      if (e.key === 'Enter') {
+        self.isEmitBall = true
+        document.removeEventListener('keyup', emitBall)
+      }
+    })
+
     this.renderPlayPage()
   }
 
@@ -144,16 +156,24 @@ class GameApp {
       this.drawBricks()
       this.drawScore()
 
-      if (this.isLeftPressed) {
-        const limitLeft = 0
-        this.paddle.x = Math.max(limitLeft, this.paddle.x - this.paddleSpeed)
-      } else if (this.isRightPressed) {
-        const limitRight = this.canvas.width - this.paddle.width
-        this.paddle.x = Math.min(limitRight, this.paddle.x + this.paddleSpeed)
+      const limitLeft = 0
+      const limitRight = this.canvas.width - this.paddle.width
+      if (this.isLeftPressed && this.paddle.x > limitLeft) {
+        this.paddle.x += -this.paddleSpeed
+        if (!this.isEmitBall) {
+          this.ball.x += -this.paddleSpeed
+        }
+      } else if (this.isRightPressed && this.paddle.x < limitRight) {
+        this.paddle.x += this.paddleSpeed
+        if (!this.isEmitBall) {
+          this.ball.x += this.paddleSpeed
+        }
       }
 
-      this.ball.x += this.dx
-      this.ball.y += this.dy
+      if (this.isEmitBall) {
+        this.ball.x += this.ball.dx
+        this.ball.y += this.ball.dy
+      }
 
       this.renderPlayPage()
     })
@@ -164,9 +184,9 @@ class GameApp {
     window.cancelAnimationFrame(this.requestFrameId)
 
     const self = this
-    document.addEventListener('keypress', function pressHandler(e) {
+    document.addEventListener('keyup', function enterHandler(e) {
       if (e.key === 'Enter') {
-        document.removeEventListener('keypress', pressHandler)
+        document.removeEventListener('keyup', enterHandler)
         self.restart()
         self.startPlayPage()
       }
@@ -230,9 +250,9 @@ class GameApp {
     const isHitWallBottom = this.ball.bottom > this.canvas.height
 
     if (isHitWallLeft || isHitWallRight) {
-      this.dx = -this.dx
+      this.ball.dx = -this.ball.dx
     } else if (isHitWallTop) {
-      this.dy = -this.dy
+      this.ball.dy = -this.ball.dy
     } else if (isHitWallBottom) {
       this.isGameOver = true
     }
@@ -246,7 +266,7 @@ class GameApp {
     if (isXin && isYin) {
       if (this.isHitting) return void 0
       this.isHitting = true
-      this.dy = -this.dy
+      this.ball.dy = -this.ball.dy
     } else {
       this.isHitting = false
     }
@@ -264,7 +284,7 @@ class GameApp {
         const isBallInX = ball.x > brick.x && ball.x < brick.x + brick.width
         const isBallInY = ball.y > brick.y && ball.y < brick.y + brick.height
         if (isBallInX && isBallInY) {
-          this.dy = -this.dy
+          this.ball.dy = -this.ball.dy
           brick.hidden = true
           this.score += 1
 
@@ -277,14 +297,7 @@ class GameApp {
     })
   }
 
-  createGameItems() {
-    // create ball
-    this.ball = new Circle(this.ballConfig)
-
-    // create paddle
-    this.paddle = new Rectangle(this.paddleConfig)
-
-    // create bricks
+  createBricks() {
     const {
       row: brickRow,
       column: brickColumn,
@@ -296,8 +309,10 @@ class GameApp {
       color: brickColor,
     } = this.brickConfig
 
+    /** @type {Rectangle[][]} */
+    const brickGroup = []
     for (let row = 0; row < brickRow; row++) {
-      this.brickGroup[row] = []
+      brickGroup[row] = []
       for (let col = 0; col < brickColumn; col++) {
         const brick = new Rectangle({
           x: row * (brickHeight + brickPadding) + brickOffsetTop,
@@ -307,9 +322,10 @@ class GameApp {
           color: brickColor,
           hidden: false,
         })
-        this.brickGroup[row].push(brick)
+        brickGroup[row].push(brick)
       }
     }
+    return brickGroup
   }
 
   drawBricks() {
@@ -328,7 +344,7 @@ class GameApp {
   drawScore() {
     this.ctx.textAlign = 'left'
     this.ctx.font = '16px Arial'
-    this.ctx.fillStyle = '#0095DD'
+    this.ctx.fillStyle = 'white'
     this.ctx.fillText(`Score: ${this.score}`, 8, 20)
   }
 
@@ -337,8 +353,8 @@ class GameApp {
     this.score = 0
     this.ball.x = this.ballConfig.x
     this.ball.y = this.ballConfig.y
-    this.dx = this.ballConfig.dx
-    this.dy = this.ballConfig.dy
+    this.ball.dx = this.ballConfig.dx
+    this.ball.dy = this.ballConfig.dy
     this.paddle.x = this.paddleConfig.x
     this.paddle.y = this.paddleConfig.y
     this.isRightPressed = false
@@ -346,6 +362,7 @@ class GameApp {
     this.isGameOver = false
     this.isWin = false
     this.isHitting = false
+    this.isEmitBall = false
     this.brickGroup.forEach((rowBricks) => {
       rowBricks.forEach((brick) => (brick.hidden = false))
     })
@@ -358,7 +375,9 @@ class Circle {
   /**
    * @typedef {object} ICircleConfig
    * @property {number} x
+   * @property {number} dx
    * @property {number} y
+   * @property {number} dy
    * @property {number} radius
    * @property {string} color
    */
@@ -366,7 +385,9 @@ class Circle {
   /** @param {ICircleConfig} config */
   constructor(config) {
     this.x = config.x
+    this.dx = config.dx
     this.y = config.y
+    this.dy = config.dy
     this.radius = config.radius
     this.color = config.color
     this.updateBound()
