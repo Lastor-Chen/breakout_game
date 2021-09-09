@@ -173,6 +173,8 @@ class GameApp {
       if (this.isEmitBall) {
         this.ball.x += this.ball.dx
         this.ball.y += this.ball.dy
+      } else {
+        this.drawPlayInfo()
       }
 
       this.renderPlayPage()
@@ -346,6 +348,25 @@ class GameApp {
     this.ctx.font = '16px Arial'
     this.ctx.fillStyle = 'white'
     this.ctx.fillText(`Score: ${this.score}`, 8, 20)
+  }
+
+  drawPlayInfo() {
+    const fontSize = 16
+    this.ctx.textAlign = 'center'
+    this.ctx.font = `${fontSize}px Arial`
+    this.ctx.fillStyle = 'white'
+    this.ctx.fillText(
+      `Press arrow left or right to move`, //
+      this.canvas.width / 2,
+      (this.canvas.height - fontSize / 2) / 2
+    )
+
+    const marginTop = 16 * 1.5
+    this.ctx.fillText(
+      `[Enter] key to emit the ball`, //
+      this.canvas.width / 2,
+      (this.canvas.height - fontSize / 2) / 2 + marginTop
+    )
   }
 
   restart() {
