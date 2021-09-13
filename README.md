@@ -15,6 +15,7 @@ Side project of HTML5 Game, refer to [MDN tutorials](https://developer.mozilla.o
 - 有 lives 機制, 死亡時看著像 bug
 - 直接用 `document.location.reload()` 作為 restart
 - ball 的運動軌跡恆定, 撞到 paddle 的任何位置皆不會改變 ball 的運動直線斜率(恆為 1)
+- 此教學忽略了 `window.requestAnimationFrame()` 不同螢幕更新率, fps 會有差異的問題
 
 ## Remake version memo
 - 改用 OOP 概念嘗試重構
@@ -27,3 +28,4 @@ Side project of HTML5 Game, refer to [MDN tutorials](https://developer.mozilla.o
 - 加入偽物理算法, 讓 ball 能根據與 paddle 的撞擊位置不同, 改變運動直線斜率
   - 將 paddle 拆3段, 依照 ball 的方向分為, 近, 中, 遠
   - 撞擊近段 ball.x 減速, 撞擊遠段 ball.x 加速
+- 加入控制 `window.requestAnimationFrame()` fps 的機制, 確保不同螢幕更新率時, 遊戲速度能保持一致
