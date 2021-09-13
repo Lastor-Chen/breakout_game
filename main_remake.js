@@ -17,6 +17,11 @@ class GameApp {
   isEmitBall = false
   /** @type {'ready' | 'playing' | 'ending'} */
   state = 'ready'
+  startTime = 0
+  thenTime = 0
+  fps = 60
+  fpsInterval = 1000 / this.fps
+  frame = 0
 
   /** @param {HTMLCanvasElement} canvas */
   constructor(canvas) {
@@ -56,12 +61,30 @@ class GameApp {
   }
 
   start() {
+    // listen Enter key to start game for once
     const self = this
     document.addEventListener('keyup', function enterHandler(e) {
       if (e.key === 'Enter') {
         document.removeEventListener('keyup', enterHandler)
-        self.state === 'playing'
         self.startPlayPage()
+      }
+    })
+
+    // listen keyboard controller
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        this.isRightPressed = true
+      }
+      if (e.key === 'ArrowLeft') {
+        this.isLeftPressed = true
+      }
+    })
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowRight') {
+        this.isRightPressed = false
+      }
+      if (e.key === 'ArrowLeft') {
+        this.isLeftPressed = false
       }
     })
 
@@ -69,9 +92,8 @@ class GameApp {
   }
 
   renderReadyPage() {
-    if (this.state !== 'ready') return void 0
-
-    this.requestFrameId = window.requestAnimationFrame((ms) => {
+    this.animate((ms) => {
+      if (this.state !== 'ready') return void 0
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
       // font style
@@ -100,34 +122,15 @@ class GameApp {
           (this.canvas.height - fontSize / 2) / 2 + marginTop * 2
         )
       }
-
-      this.renderReadyPage()
     })
   }
 
   startPlayPage() {
     this.state = 'playing'
     window.cancelAnimationFrame(this.requestFrameId)
+    this.resetAnimationTimer()
 
-    // listen keyboard controller
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') {
-        this.isRightPressed = true
-      }
-      if (e.key === 'ArrowLeft') {
-        this.isLeftPressed = true
-      }
-    })
-    document.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowRight') {
-        this.isRightPressed = false
-      }
-      if (e.key === 'ArrowLeft') {
-        this.isLeftPressed = false
-      }
-    })
-
-    // listen ball emitter "once"
+    // listen Enter key to emit ball for once
     const self = this
     document.addEventListener('keyup', function emitBall(e) {
       if (e.key === 'Enter') {
@@ -140,10 +143,9 @@ class GameApp {
   }
 
   renderPlayPage() {
-    if (this.state !== 'playing') return void 0
-    if (this.isGameOver) return this.startEndingPage()
-
-    this.requestFrameId = window.requestAnimationFrame(() => {
+    this.animate(() => {
+      if (this.state !== 'playing') return void 0
+      if (this.isGameOver) return this.startEndingPage()
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
       this.paddle.updateBound().draw(this.ctx)
@@ -178,20 +180,20 @@ class GameApp {
       } else {
         this.drawPlayInfo()
       }
-
-      this.renderPlayPage()
     })
   }
 
   startEndingPage() {
     this.state = 'ending'
     window.cancelAnimationFrame(this.requestFrameId)
+    this.resetAnimationTimer()
 
+    // listen Enter key to restart for once
     const self = this
     document.addEventListener('keyup', function enterHandler(e) {
       if (e.key === 'Enter') {
         document.removeEventListener('keyup', enterHandler)
-        self.restart()
+        self.resetGame()
         self.startPlayPage()
       }
     })
@@ -200,9 +202,8 @@ class GameApp {
   }
 
   renderEndingPage() {
-    if (this.state !== 'ending') return void 0
-
-    this.requestFrameId = window.requestAnimationFrame((ms) => {
+    this.animate((ms) => {
+      if (this.state !== 'ending') return void 0
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
       // font style
@@ -242,9 +243,74 @@ class GameApp {
           (this.canvas.height - titleSize / 2) / 2 + marginTop * 2
         )
       }
-
-      this.renderEndingPage()
     })
+  }
+
+  /**
+   * 限制 RAF 的 fps, 確保不同螢幕能保持相同 fps
+   * @param {(ms: number) => void} callback
+   * @see {@link [Controlling FPS with RAF](https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe)}
+   */
+  animate(callback) {
+    this.requestFrameId = window.requestAnimationFrame((nowTime) => {
+      // 拿到的時間為 window.performance.now(), 有別於 Date.now()
+      if (!this.startTime) {
+        this.startTime = nowTime
+        this.thenTime = this.startTime
+      }
+
+      // requestAnimationFrame recursion loop
+      this.animate(callback)
+
+      const elapsed = nowTime - this.thenTime
+      if (elapsed > this.fpsInterval) {
+        // 新一輪時, 重置開始時間, 扣除溢出值
+        // 例如 fpsInterval 為 40ms, 經過了 51ms, 需將 thenTime 更新為 40ms
+        this.thenTime = nowTime - (elapsed % this.fpsInterval)
+        this.printTimeInfo(nowTime)
+        callback(nowTime)
+      }
+    })
+  }
+
+  /** 換場景時, 重置 requestAnimationFrame 的計時變數 */
+  resetAnimationTimer() {
+    this.startTime = 0
+    this.frame = 0
+  }
+
+  resetGame() {
+    // reset all value
+    this.score = 0
+    this.ball.x = this.ballConfig.x
+    this.ball.y = this.ballConfig.y
+    this.ball.dx = this.ballConfig.dx
+    this.ball.dy = this.ballConfig.dy
+    this.paddle.x = this.paddleConfig.x
+    this.paddle.y = this.paddleConfig.y
+    this.isRightPressed = false
+    this.isLeftPressed = false
+    this.isGameOver = false
+    this.isWin = false
+    this.isPaddleHitting = false
+    this.isWallHitting = false
+    this.isEmitBall = false
+    this.brickGroup.forEach((rowBricks) => {
+      rowBricks.forEach((brick) => (brick.hidden = false))
+    })
+  }
+
+  /**
+   * Display fps information on HTML
+   * @param {number} nowTime
+   */
+  printTimeInfo(nowTime) {
+    this.frame++
+    /** @type {HTMLParagraphElement} */
+    const board = document.querySelector('#board')
+    const sinceStart = nowTime - this.startTime
+    const fps = 1000 / (sinceStart / this.frame)
+    board.innerText = `${fps.toFixed(1)} fps`
   }
 
   collideBallWithWall() {
@@ -257,7 +323,7 @@ class GameApp {
     if (isHitWallLeft) {
       this.ball.dx = -this.ball.dx
       this.ball.x = 0 + this.ball.radius
-    } if (isHitWallRight) {
+    } else if (isHitWallRight) {
       this.ball.dx = -this.ball.dx
       this.ball.x = this.canvas.width - this.ball.radius
     } else if (isHitWallTop) {
@@ -397,29 +463,6 @@ class GameApp {
       this.canvas.width / 2,
       (this.canvas.height - fontSize / 2) / 2 + marginTop
     )
-  }
-
-  restart() {
-    // reset all
-    this.score = 0
-    this.ball.x = this.ballConfig.x
-    this.ball.y = this.ballConfig.y
-    this.ball.dx = this.ballConfig.dx
-    this.ball.dy = this.ballConfig.dy
-    this.paddle.x = this.paddleConfig.x
-    this.paddle.y = this.paddleConfig.y
-    this.isRightPressed = false
-    this.isLeftPressed = false
-    this.isGameOver = false
-    this.isWin = false
-    this.isPaddleHitting = false
-    this.isWallHitting = false
-    this.isEmitBall = false
-    this.brickGroup.forEach((rowBricks) => {
-      rowBricks.forEach((brick) => (brick.hidden = false))
-    })
-
-    this.renderPlayPage()
   }
 }
 
