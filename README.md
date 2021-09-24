@@ -1,13 +1,19 @@
-# BreakOut Game
-Side project of HTML5 Game, refer to [MDN tutorials](https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript)
+# Breakout Game with vanilla JavaScript
+Side project of HTML5 Game, refer to [MDN tutorials](https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript).
 
-#### Origin version
+#### Origin version (similar to MDN)
   - `index_mdn.html` + `main_mdn.js`
   - [demo](https://lastor-chen.github.io/breakout_game/index_mdn.html)
 
-#### Remake version
+#### Remake version (use OOP)
   - `index_remake.html` + `main_remake.js`
   - [demo](https://lastor-chen.github.io/breakout_game/index_remake.html)
+
+#### Phaser3 version (other repo)
+  - [breakout game phaser](https://github.com/Lastor-Chen/breakout_game_phaser)
+
+HTML5 Game 練習專案，參考上面的 MDN 教學，使用原生 JavaScript。MDN 教學的寫法較為古老，故重新用 OOP 的概念重做了一個 remake 版本，並對 game 內容添加一些新功能。
+另外有使用 Phaser v3 的版本，位於其他 Repo。
 
 ## Origin version memo
 - paddle 與 ball 的碰撞偵測是檢查當 ball 碰到場景底部時, ball 的中心是否介於 paddle.width 之間
